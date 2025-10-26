@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Game Manager - Controls the chase game
@@ -23,6 +25,9 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI survivalTimeText;
     public TextMeshProUGUI objectiveText;
     public TextMeshProUGUI instructionText;
+    public GameObject gameOverPanel; // NEW: Game Over Panel
+    public TextMeshProUGUI gameOverText; // NEW: Game Over Text
+    public Button replayButton; // NEW: Replay Button
 
     private List<GameObject> activeEnemies = new List<GameObject>();
     private float survivalTime = 0f;
@@ -49,6 +54,30 @@ public class GameManager : MonoBehaviour
 
         if (instructionText != null)
             instructionText.text = "WASD: Move | MOUSE: Look Around | SHIFT: Run | SPACE: Jump";
+
+        // Setup survival time text at TOP-LEFT during gameplay
+        if (survivalTimeText != null)
+        {
+            survivalTimeText.text = "SURVIVAL TIME: 00:00";
+            survivalTimeText.fontSize = 64;
+            survivalTimeText.alignment = TextAlignmentOptions.TopLeft;
+            
+            // Set to top-left anchor
+            RectTransform rectTransform = survivalTimeText.GetComponent<RectTransform>();
+            if (rectTransform != null)
+            {
+                rectTransform.anchorMin = new Vector2(0, 1);
+                rectTransform.anchorMax = new Vector2(0, 1);
+                rectTransform.pivot = new Vector2(0, 1);
+                rectTransform.anchoredPosition = new Vector2(10, -10);
+            }
+        }
+
+        // Setup Replay Button
+        if (replayButton != null)
+        {
+            replayButton.onClick.AddListener(ReplayGame);
+        }
     }
 
     private void Update()
@@ -78,15 +107,45 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        if (player == null)
+        {
+            Debug.LogError("Player not assigned in GameManager!");
+            return;
+        }
+
         for (int i = 0; i < numberOfEnemies; i++)
         {
-            // Calculate random spawn position
-            Vector3 randomDirection = Random.insideUnitSphere;
-            randomDirection.y = 0;
-            randomDirection = randomDirection.normalized;
+            Vector3 spawnPosition = Vector3.zero;
+            bool validSpawnFound = false;
 
-            Vector3 spawnPosition = player.position + randomDirection * spawnRadius;
-            spawnPosition.y = spawnHeight;
+            // Try to find a valid spawn position on the NavMesh
+            for (int attempts = 0; attempts < 10; attempts++)
+            {
+                // Calculate spawn position in a circle around player
+                float angle = (360f / numberOfEnemies) * i + (attempts * 36f);
+                float radians = angle * Mathf.Deg2Rad;
+                float currentRadius = spawnRadius + (attempts * 5f);
+                
+                float spawnX = player.position.x + Mathf.Cos(radians) * currentRadius;
+                float spawnZ = player.position.z + Mathf.Sin(radians) * currentRadius;
+                
+                spawnPosition = new Vector3(spawnX, spawnHeight + 10f, spawnZ);
+
+                // Sample NavMesh to find valid position
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(spawnPosition, out hit, 5f, NavMesh.AllAreas))
+                {
+                    spawnPosition = hit.position;
+                    validSpawnFound = true;
+                    break;
+                }
+            }
+
+            if (!validSpawnFound)
+            {
+                Debug.LogWarning($"Could not find valid spawn position for Enemy_{i + 1}");
+                continue;
+            }
 
             // Instantiate enemy
             GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
@@ -97,13 +156,18 @@ public class GameManager : MonoBehaviour
             if (enemyAi != null)
             {
                 enemyAi.player = player;
+                Debug.Log($"Spawned {enemy.name} at {spawnPosition}");
+            }
+            else
+            {
+                Debug.LogError($"Enemy prefab doesn't have EnemyAi script!");
+                Destroy(enemy);
             }
 
             activeEnemies.Add(enemy);
-            Debug.Log($"Spawned {enemy.name} at {spawnPosition}");
         }
 
-        Debug.Log($"Spawned {numberOfEnemies} enemies!");
+        Debug.Log($"Successfully spawned {activeEnemies.Count} enemies!");
     }
 
     /// <summary>
@@ -114,8 +178,46 @@ public class GameManager : MonoBehaviour
         gameActive = false;
         Debug.Log("Game Over! Survived for: " + survivalTime + " seconds");
 
+        // FREEZE THE GAME - Set time scale to 0
+        Time.timeScale = 0f;
+
+        // SHOW THE CURSOR so player can click replay button
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        // Show Game Over Panel
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true);
+        }
+
+        // Update Game Over Text
+        if (gameOverText != null)
+        {
+            gameOverText.text = $"<color=red><b>GAME OVER!</b></color>\n\n<color=yellow>SURVIVED: {(int)survivalTime} seconds</color>";
+        }
+
+        // Hide survival timer
         if (survivalTimeText != null)
-            survivalTimeText.text = $"GAME OVER! SURVIVED: {(int)survivalTime} seconds";
+        {
+            survivalTimeText.gameObject.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// Restart the game
+    /// </summary>
+    public void ReplayGame()
+    {
+        // Resume time
+        Time.timeScale = 1f;
+        
+        // Hide cursor again (for gameplay)
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        
+        // Reload the current scene
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     /// <summary>

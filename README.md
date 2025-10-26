@@ -5,6 +5,7 @@ A simple yet engaging Unity game where the player must survive and evade multipl
 ## 📋 Project Overview
 
 This is a **survival/chase game** built with Unity where:
+
 - The player navigates a 3D terrain environment
 - Multiple AI enemies patrol and chase the player
 - The objective is to evade enemies for as long as possible
@@ -45,10 +46,12 @@ ProjectSettings/
 ## 🛠️ Setup Instructions
 
 ### Prerequisites
+
 - Unity 2020.3 LTS or newer
 - AI Navigation package installed
 
 ### Step 1: Install AI Navigation Package
+
 1. Go to **Window > TextureImporter > Package Manager**
 2. Click **+** button in the top left
 3. Search for **"AI Navigation"**
@@ -85,11 +88,13 @@ ProjectSettings/
 Create three TextMeshPro text objects:
 
 1. **SurvivalTimeText** (Top-right):
+
    - Right-click Hierarchy → **UI > Text - TextMeshPro**
    - Position: Top-right corner
    - Anchor: Top-right
 
 2. **ObjectiveText** (Top-center):
+
    - Position: Center-top
    - Anchor: Top-center
 
@@ -117,6 +122,7 @@ Create three TextMeshPro text objects:
 ### Step 7: Play!
 
 Press **Play** and test the game. You should:
+
 - ✅ See enemies spawn around you
 - ✅ Be able to move with WASD
 - ✅ See enemies chase you
@@ -125,58 +131,68 @@ Press **Play** and test the game. You should:
 
 ## 🎮 Controls
 
-| Key | Action |
-|-----|--------|
-| **WASD** | Move forward/back/left/right |
-| **Mouse** | Look around |
-| **SHIFT** | Run (faster movement) |
-| **SPACE** | Jump |
-| **C** | Crouch |
-| **ESC** | Unlock cursor (press again to lock) |
+| Key       | Action                              |
+| --------- | ----------------------------------- |
+| **WASD**  | Move forward/back/left/right        |
+| **Mouse** | Look around                         |
+| **SHIFT** | Run (faster movement)               |
+| **SPACE** | Jump                                |
+| **C**     | Crouch                              |
+| **ESC**   | Unlock cursor (press again to lock) |
 
 ## 📝 Script Documentation
 
 ### PlayerMovementScript.cs
+
 Handles player movement, camera look, jumping, running, and crouching.
 
 **Key Variables:**
+
 - `walkSpeed`: Normal movement speed (6 units/sec)
 - `runSpeed`: Sprint speed (12 units/sec)
 - `jumpPower`: Jump force (7 units)
 - `lookSpeed`: Mouse sensitivity (2)
 
 ### EnemyAi.cs
+
 Controls enemy behavior - patrolling and chasing.
 
 **Key Features:**
+
 - Patrols randomly when player is not detected
 - Chases player when within sight range
 - Uses NavMesh for pathfinding
 - Automatically finds player by tag or name
 
 **Key Variables:**
+
 - `sightRange`: How far enemy can see (30 units)
 - `walkPointRange`: Patrol area size (20 units)
 - `chaseStopDistance`: Distance to keep from player (2 units)
 
 ### GameManager.cs
+
 Manages game state, spawns enemies, and tracks survival time.
 
 **Key Features:**
+
 - Spawns multiple enemies at start
 - Tracks survival time
 - Updates UI with game information
 - Detects when player is caught
 
 **Key Variables:**
+
 - `numberOfEnemies`: How many enemies to spawn (3-5)
 - `spawnRadius`: Distance enemies spawn from player (50 units)
 - `spawnHeight`: Height enemies spawn at (1 unit)
 
 ### EnemyCollisionDetector.cs
+
 Detects collision between enemy and player.
 
 **Key Features:**
+
 - Uses trigger collision detection
 - Calls GameManager when player is caught
 - Prevents multiple catch triggers
@@ -184,21 +200,25 @@ Detects collision between enemy and player.
 ## 🐛 Troubleshooting
 
 ### Enemies not moving
+
 - **Solution**: Check if NavMesh is baked (blue mesh visible on terrain)
 - **Solution**: Verify NavMeshAgent component is enabled
 - **Solution**: Check if Agent Type matches baked NavMesh type
 
 ### Enemies not chasing
+
 - **Solution**: Verify Player is tagged as "Player"
 - **Solution**: Check sightRange value (should be > 0)
 - **Solution**: Verify player is within sightRange distance
 
 ### Game doesn't recognize player being caught
+
 - **Solution**: Ensure Player has correct tag
 - **Solution**: Verify Collider is set to "Is Trigger"
 - **Solution**: Check EnemyCollisionDetector is added to enemy
 
 ### No UI text showing
+
 - **Solution**: Verify TextMeshPro objects are assigned in GameManager
 - **Solution**: Check Canvas is in the scene
 - **Solution**: Verify text objects have proper positioning
@@ -206,15 +226,18 @@ Detects collision between enemy and player.
 ## 🚀 Tips for Implementation
 
 1. **Difficulty Adjustment**:
+
    - Increase `numberOfEnemies` for harder game
    - Increase `sightRange` to make enemies detect earlier
    - Decrease `walkPointRange` to keep enemies closer
 
 2. **Performance**:
+
    - Limit enemies to 10 or fewer for smooth performance
    - Use NavMeshAgent with lower quality settings if needed
 
 3. **Testing**:
+
    - Play in windowed mode to see console errors
    - Use Debug.Log to track enemy spawning
    - Enable NavMesh visualization (Window > AI > Navigation)
@@ -235,6 +258,7 @@ Detects collision between enemy and player.
 ## 📄 Code Quality
 
 All scripts include:
+
 - Clear comments and documentation
 - Proper naming conventions
 - Error handling and validation
@@ -256,6 +280,7 @@ When working with your team:
 ## 📧 Support
 
 For issues or questions:
+
 1. Check the **Troubleshooting** section
 2. Review the **Script Documentation**
 3. Check Console for error messages

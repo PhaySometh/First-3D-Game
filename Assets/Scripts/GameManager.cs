@@ -29,6 +29,15 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI gameOverText; // NEW: Game Over Text
     public Button replayButton; // NEW: Replay Button
 
+    [Header("Coin System")]
+    public int totalCoins = 0;
+    public int totalExperience = 0;
+    public int playerLevel = 1;
+    public int expToNextLevel = 100;
+    public TextMeshProUGUI coinText;
+    public TextMeshProUGUI expText;
+    public TextMeshProUGUI levelText;
+
     private List<GameObject> activeEnemies = new List<GameObject>();
     private float survivalTime = 0f;
     private bool gameActive = true;
@@ -226,5 +235,46 @@ public class GameManager : MonoBehaviour
     public float GetSurvivalTime()
     {
         return survivalTime;
+    }
+
+    /// <summary>
+    /// Add coins when collected
+    /// </summary>
+    public void AddScore(int amount)
+    {
+        totalCoins += amount;
+        if (coinText != null)
+        {
+            coinText.text = "Coins: " + totalCoins;
+        }
+        Debug.Log("💰 Total Coins: " + totalCoins);
+    }
+    
+    /// <summary>
+    /// Add experience and check for level up
+    /// </summary>
+    public void AddExperience(int amount)
+    {
+        totalExperience += amount;
+        
+        // Check for level up
+        while (totalExperience >= expToNextLevel)
+        {
+            playerLevel++;
+            totalExperience -= expToNextLevel;
+            expToNextLevel = Mathf.RoundToInt(expToNextLevel * 1.5f);
+            
+            if (levelText != null)
+            {
+                levelText.text = "Level: " + playerLevel;
+            }
+            
+            Debug.Log("🎉 LEVEL UP! Now level " + playerLevel);
+        }
+        
+        if (expText != null)
+        {
+            expText.text = "EXP: " + totalExperience + "/" + expToNextLevel;
+        }
     }
 }

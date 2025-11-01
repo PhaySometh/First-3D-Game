@@ -1742,8 +1742,8 @@ MonoBehaviour:
   spawnOnStart: 1
   initialCoinCount: 30
   spawnCenter: {fileID: 0}
-  minSpawnRadius: 15
-  maxSpawnRadius: 60
+  minSpawnRadius: 5
+  maxSpawnRadius: 20
   raycastHeight: 100
   terrainLayer:
     serializedVersion: 2
@@ -1755,8 +1755,10 @@ MonoBehaviour:
   triggerSpawnRadius: 10
   triggerCooldown: 5
   enableAutoRespawn: 1
-  respawnInterval: 30
-  maxCoins: 35
+  respawnInterval: 10
+  maxCoins: 50
+  spawnNearPlayerMovement: 1
+  movementThreshold: 15
   showGizmos: 1
 --- !u!4 &1275503488
 Transform:
@@ -1801,7 +1803,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 326.56, y: 22.62, z: 409.24}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1342852114}

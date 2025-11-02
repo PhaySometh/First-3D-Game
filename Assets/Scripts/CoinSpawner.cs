@@ -15,17 +15,17 @@ public class CoinSpawner : MonoBehaviour
     public bool spawnOnStart = true;
     
     [Tooltip("Number of coins to spawn initially")]
-    public int initialCoinCount = 15;
+    public int initialCoinCount = 30;  // More coins!
     
     [Header("Spawn Area")]
     [Tooltip("Center point for spawning (leave empty to use player)")]
     public Transform spawnCenter;
     
     [Tooltip("Minimum distance from center")]
-    public float minSpawnRadius = 10f;
+    public float minSpawnRadius = 5f;  // Closer to player!
     
     [Tooltip("Maximum distance from center")]
-    public float maxSpawnRadius = 50f;
+    public float maxSpawnRadius = 20f;  // Much closer range!
     
     [Tooltip("Height to start raycast from (above terrain)")]
     public float raycastHeight = 100f;
@@ -55,13 +55,19 @@ public class CoinSpawner : MonoBehaviour
     
     [Header("Auto Respawn")]
     [Tooltip("Enable automatic coin respawning?")]
-    public bool enableAutoRespawn = false;
+    public bool enableAutoRespawn = true;  // Enable auto-spawn!
     
     [Tooltip("Respawn interval in seconds")]
-    public float respawnInterval = 30f;
+    public float respawnInterval = 10f;  // Spawn every 10 seconds!
     
     [Tooltip("Maximum coins in scene at once")]
-    public int maxCoins = 30;
+    public int maxCoins = 50;  // Allow more coins!
+    
+    [Tooltip("Spawn coins near player when they move?")]
+    public bool spawnNearPlayerMovement = true;
+    
+    [Tooltip("Distance player must move to trigger new coin spawn")]
+    public float movementThreshold = 15f;
     
     [Header("Debug")]
     [Tooltip("Show spawn area gizmos in editor?")]
@@ -71,6 +77,7 @@ public class CoinSpawner : MonoBehaviour
     private float nextRespawnTime = 0f;
     private float lastTriggerTime = -999f;
     private Transform playerTransform;
+    private Vector3 lastPlayerPosition;
     
     void Start()
     {
@@ -95,6 +102,12 @@ public class CoinSpawner : MonoBehaviour
         {
             SpawnInitialCoins();
         }
+        
+        // Track initial player position
+        if (playerTransform != null)
+        {
+            lastPlayerPosition = playerTransform.position;
+        }
     }
     
     void Update()
@@ -102,12 +115,43 @@ public class CoinSpawner : MonoBehaviour
         // Clean up destroyed coins from list
         activeCoins.RemoveAll(coin => coin == null);
         
+        // Spawn coins as player moves
+        if (spawnNearPlayerMovement && playerTransform != null)
+        {
+            float distanceMoved = Vector3.Distance(playerTransform.position, lastPlayerPosition);
+            
+            if (distanceMoved >= movementThreshold && activeCoins.Count < maxCoins)
+            {
+                // Spawn 3-5 coins near player's new position
+                int coinsToSpawn = Random.Range(3, 6);
+                for (int i = 0; i < coinsToSpawn; i++)
+                {
+                    Vector3 spawnPos = GetRandomPositionNearPlayer(playerTransform.position, 15f);
+                    if (spawnPos != Vector3.zero)
+                    {
+                        SpawnCoin(spawnPos);
+                    }
+                }
+                
+                lastPlayerPosition = playerTransform.position;
+                Debug.Log($"🎯 Player moved! Spawned {coinsToSpawn} new coins nearby!");
+            }
+        }
+        
         // Auto respawn
         if (enableAutoRespawn && Time.time >= nextRespawnTime)
         {
             if (activeCoins.Count < maxCoins)
             {
-                SpawnCoin(GetRandomTerrainPosition());
+                // Spawn near player, not randomly far away!
+                Vector3 spawnPos = playerTransform != null 
+                    ? GetRandomPositionNearPlayer(playerTransform.position, 20f)
+                    : GetRandomTerrainPosition();
+                    
+                if (spawnPos != Vector3.zero)
+                {
+                    SpawnCoin(spawnPos);
+                }
                 nextRespawnTime = Time.time + respawnInterval;
             }
         }
@@ -192,9 +236,9 @@ public class CoinSpawner : MonoBehaviour
             return;
         }
         
-        // Instantiate coin with random Y rotation only (keep coin standing upright)
-        GameObject coin = Instantiate(coinPrefab, position, Quaternion.identity);
-        coin.transform.rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
+        // Instantiate coin - use prefab's original rotation, then add random Y spin
+        GameObject coin = Instantiate(coinPrefab, position, coinPrefab.transform.rotation);
+        coin.transform.Rotate(0, Random.Range(0f, 360f), 0, Space.World);
         coin.transform.parent = transform;
         
         // Configure coin

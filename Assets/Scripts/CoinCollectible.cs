@@ -151,8 +151,7 @@ public class CoinCollectible : MonoBehaviour
     {
         if (rb != null && !isCollected)
         {
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            // First make kinematic (this stops all physics)
             rb.isKinematic = true;
             startPosition = transform.position;
         }

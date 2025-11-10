@@ -53,7 +53,13 @@ public class PlayerAnimationController : MonoBehaviour
 
         // Update grounded state
         bool isGrounded = characterController.isGrounded;
-        animator.SetBool(isGroundedHash, isGrounded);
+        
+        // Only set parameters that exist in your Animator Controller
+        try
+        {
+            animator.SetBool(isGroundedHash, isGrounded);
+        }
+        catch { } // Ignore if parameter doesn't exist
 
         // Determine animation speed and state
         float currentSpeed = 0f;
@@ -81,15 +87,22 @@ public class PlayerAnimationController : MonoBehaviour
             isMoving = false;
         }
 
-        // Update animator parameters
-        animator.SetFloat(speedHash, currentSpeed);
-        animator.SetBool(isMovingHash, isMoving);
-        animator.SetBool(isCrouchingHash, isCrouching);
+        // Update animator parameters (only if they exist)
+        try
+        {
+            animator.SetFloat(speedHash, currentSpeed);
+            animator.SetBool(isMovingHash, isMoving);
+        }
+        catch { } // Ignore if parameters don't exist
 
-        // Handle jump animation
+        // Handle jump animation (only if parameter exists)
         if (Input.GetButton("Jump") && isGrounded)
         {
-            animator.SetTrigger(jumpHash);
+            try
+            {
+                animator.SetTrigger(jumpHash);
+            }
+            catch { }
         }
     }
 }

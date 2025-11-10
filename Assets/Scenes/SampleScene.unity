@@ -697,11 +697,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c9b06dcf3d64460689daeafe10c0e4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyPrefab: {fileID: 4196539795296937132, guid: ad4136770a97243d1bc4738f50e60da7, type: 3}
+  enemyPrefab: {fileID: 7422635469150984501, guid: e27e43247c0a744869369a59e915d71b, type: 3}
+  enemyPrefab2: {fileID: 1317383731759370125, guid: df0d8d73ec5c049488b47b245d77c323, type: 3}
   player: {fileID: 1318439927}
   numberOfEnemies: 1000
-  spawnRadius: 50
+  spawnDistance: 30
   spawnHeight: 1
+  spawnInterval: 3
+  minSpawnInterval: 0.5
+  spawnGradually: 1
+  increaseDifficulty: 1
+  difficultyMultiplier: 0.95
   survivalTimeText: {fileID: 116179037}
   objectiveText: {fileID: 540833996}
   instructionText: {fileID: 936098690}

@@ -18,9 +18,17 @@ public class GameManager : MonoBehaviour
     public Transform player;
 
     [Header("Spawn Settings")]
-    public int numberOfEnemies = 3;
-    public float spawnRadius = 50f;
+    public int numberOfEnemies = 3; // Initial enemies
+    public float spawnDistance = 25f; // Spawn nearby (visible)
     public float spawnHeight = 1f;
+    public float spawnInterval = 3f; // Initial spawn interval (3 seconds - reasonable start)
+    public float minSpawnInterval = 0.5f; // Minimum spawn interval (0.5 seconds - very hard)
+    public bool spawnGradually = true;
+    
+    [Header("Difficulty Settings")]
+    public bool increaseDifficulty = true;
+    public float difficultyMultiplier = 0.92f; // Multiply spawn interval (0.92 = 8% faster each second - more aggressive!)
+    // NOTE: No max enemies - they keep spawning forever!
 
     [Header("UI")]
     public TextMeshProUGUI survivalTimeText;
@@ -43,6 +51,12 @@ public class GameManager : MonoBehaviour
     private float survivalTime = 0f;
     private bool gameActive = true;
 
+    // For gradual enemy spawning
+    private int enemiesSpawned = 0;
+    private float spawnTimer = 0f;
+    private float currentSpawnInterval; // NEW: Dynamic spawn interval
+    private float difficultyTimer = 0f; // NEW: Track difficulty progression
+
     private void Start()
     {
         // Find player if not assigned
@@ -55,8 +69,15 @@ public class GameManager : MonoBehaviour
                 player = playerObj.transform;
         }
 
-        // Spawn enemies
-        SpawnEnemies();
+        Debug.Log($"🎮 GameManager started. Player found: {(player != null ? "YES" : "NO")}");
+
+        // Initialize spawn interval
+        currentSpawnInterval = spawnInterval;
+        spawnTimer = 2.5f; // DELAY: Wait 2.5 seconds before first enemy spawns - gives player time to prepare!
+        enemiesSpawned = 0;
+
+        // UPDATED: Don't spawn immediately - let player prepare for 2-3 seconds
+        Debug.Log($"🎮 Game Started! First enemy will spawn in 2-3 seconds...");
 
         // Update UI
         if (objectiveText != null)
@@ -104,87 +125,171 @@ public class GameManager : MonoBehaviour
             int seconds = (int)(survivalTime % 60f);
             survivalTimeText.text = $"SURVIVAL TIME: {minutes:00}:{seconds:00}";
         }
+
+        // Update difficulty every second
+        difficultyTimer += Time.deltaTime;
+        if (difficultyTimer >= 1f && increaseDifficulty)
+        {
+            difficultyTimer = 0f;
+            IncreaseDifficulty();
+        }
+
+        // Spawn enemies continuously - NO LIMIT!
+        if (spawnGradually)
+        {
+            spawnTimer -= Time.deltaTime;
+            if (spawnTimer <= 0)
+            {
+                SpawnSingleEnemy();
+                spawnTimer = currentSpawnInterval;
+            }
+        }
     }
 
     /// <summary>
-    /// Spawn multiple enemies around the player (mix of both types)
+    /// NEW: Increase difficulty as player survives
     /// </summary>
-    private void SpawnEnemies()
+    private void IncreaseDifficulty()
+    {
+        // Make spawn interval shorter (faster spawning)
+        currentSpawnInterval *= difficultyMultiplier;
+        currentSpawnInterval = Mathf.Max(currentSpawnInterval, minSpawnInterval);
+        
+        // Calculate enemies per minute for clarity
+        float enemiesPerMinute = 60f / currentSpawnInterval;
+        Debug.Log($"⚡ DIFFICULTY UP! Spawn interval: {currentSpawnInterval:F2}s ({enemiesPerMinute:F0} enemies/min) | Time survived: {survivalTime:F0}s");
+    }
+
+    /// <summary>
+    /// Spawn all enemies immediately (old behavior)
+    /// </summary>
+    private void SpawnEnemiesImmediate()
+    {
+        for (int i = 0; i < numberOfEnemies; i++)
+        {
+            SpawnSingleEnemy();
+        }
+    }
+
+    /// <summary>
+    /// Spawn a single enemy at a random valid position
+    /// </summary>
+    private void SpawnSingleEnemy()
     {
         if (enemyPrefab == null)
         {
-            Debug.LogError("Enemy prefab not assigned in GameManager!");
+            Debug.LogError("❌ Enemy prefab not assigned in GameManager!");
             return;
         }
 
         if (player == null)
         {
-            Debug.LogError("Player not assigned in GameManager!");
+            Debug.LogError("❌ Player not assigned in GameManager!");
             return;
         }
 
-        for (int i = 0; i < numberOfEnemies; i++)
+        Debug.Log($"📍 Attempting to spawn enemy #{enemiesSpawned + 1} near player at {player.position}");
+
+
+        Vector3 spawnPosition = Vector3.zero;
+        bool validSpawnFound = false;
+
+        // Try to find a valid spawn position on the NavMesh
+        for (int attempts = 0; attempts < 10; attempts++)
         {
-            Vector3 spawnPosition = Vector3.zero;
-            bool validSpawnFound = false;
-
-            // Try to find a valid spawn position on the NavMesh
-            for (int attempts = 0; attempts < 10; attempts++)
+            // IMPROVED: Spawn around player but AVOID the front direction
+            // Get player's forward direction
+            Vector3 playerForward = player.forward; // Player's forward direction
+            
+            // Choose spawn angle: AVOID front (0-90 degrees), prefer LEFT/RIGHT/BEHIND
+            // Angles: 0° = front, 90° = right, 180° = back, 270° = left
+            float angle;
+            int zone = Random.Range(0, 3); // 0=left (270±45), 1=right (90±45), 2=back (180±45)
+            
+            if (zone == 0) // LEFT SIDE
             {
-                // Calculate spawn position in a circle around player
-                float angle = (360f / numberOfEnemies) * i + (attempts * 36f);
-                float radians = angle * Mathf.Deg2Rad;
-                float currentRadius = spawnRadius + (attempts * 5f);
-                
-                float spawnX = player.position.x + Mathf.Cos(radians) * currentRadius;
-                float spawnZ = player.position.z + Mathf.Sin(radians) * currentRadius;
-                
-                spawnPosition = new Vector3(spawnX, spawnHeight + 10f, spawnZ);
-
-                // Sample NavMesh to find valid position
-                NavMeshHit hit;
-                if (NavMesh.SamplePosition(spawnPosition, out hit, 5f, NavMesh.AllAreas))
-                {
-                    spawnPosition = hit.position;
-                    validSpawnFound = true;
-                    break;
-                }
+                angle = Random.Range(225f, 315f); // Left side (270 ± 45 degrees)
             }
-
-            if (!validSpawnFound)
+            else if (zone == 1) // RIGHT SIDE
             {
-                Debug.LogWarning($"Could not find valid spawn position for Enemy_{i + 1}");
-                continue;
+                angle = Random.Range(45f, 135f); // Right side (90 ± 45 degrees)
             }
-
-            // NEW: Randomly choose between enemy type 1 and 2
-            GameObject selectedPrefab = enemyPrefab;
-            if (enemyPrefab2 != null && Random.value > 0.5f)
+            else // BACK SIDE
             {
-                selectedPrefab = enemyPrefab2;
+                angle = Random.Range(135f, 225f); // Behind (180 ± 45 degrees)
             }
+            
+            float radians = angle * Mathf.Deg2Rad;
+            
+            // Spawn MUCH further away (35-50 units) - gives player time to see and react
+            float randomDistance = Random.Range(35f, 50f);
+            
+            float spawnX = player.position.x + Mathf.Cos(radians) * randomDistance;
+            float spawnZ = player.position.z + Mathf.Sin(radians) * randomDistance;
+            
+            spawnPosition = new Vector3(spawnX, spawnHeight + 5f, spawnZ);
+            
+            Debug.Log($"   Attempt #{attempts + 1}: Zone={zone}, Angle={angle:F0}°, Distance={randomDistance:F1}m, Position={spawnPosition}");
 
-            // Instantiate enemy
-            GameObject enemy = Instantiate(selectedPrefab, spawnPosition, Quaternion.identity);
-            enemy.name = $"Enemy_{i + 1}";
-
-            // Setup enemy
-            EnemyAi enemyAi = enemy.GetComponent<EnemyAi>();
-            if (enemyAi != null)
+            // Sample NavMesh to find valid position - IMPROVED: larger search radius
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(spawnPosition, out hit, 10f, NavMesh.AllAreas))
             {
-                enemyAi.player = player;
-                Debug.Log($"Spawned {enemy.name} at {spawnPosition}");
+                spawnPosition = hit.position;
+                validSpawnFound = true;
+                Debug.Log($"   ✓ Valid position found on NavMesh: {spawnPosition}");
+                break;
             }
-            else
-            {
-                Debug.LogError($"Enemy prefab doesn't have EnemyAi script!");
-                Destroy(enemy);
-            }
-
-            activeEnemies.Add(enemy);
         }
 
-        Debug.Log($"Successfully spawned {activeEnemies.Count} enemies!");
+        if (!validSpawnFound)
+        {
+            // FALLBACK: If NavMesh sampling fails, still spawn enemy but close to player
+            spawnPosition = player.position + new Vector3(Random.Range(-5f, 5f), 0.5f, Random.Range(-5f, 5f));
+            Debug.LogWarning($"⚠️ NavMesh spawn failed after 10 attempts, using fallback position: {spawnPosition}");
+        }
+
+        // Randomly choose between enemy type 1 and 2
+        GameObject selectedPrefab = enemyPrefab;
+        if (enemyPrefab2 != null && Random.value > 0.5f)
+        {
+            selectedPrefab = enemyPrefab2;
+        }
+
+        // Instantiate enemy
+        GameObject enemy = Instantiate(selectedPrefab, spawnPosition, Quaternion.identity);
+        enemy.name = $"Enemy_{enemiesSpawned + 1}";
+
+        // Setup enemy
+        EnemyAi enemyAi = enemy.GetComponent<EnemyAi>();
+        if (enemyAi != null)
+        {
+            enemyAi.player = player;
+            Debug.Log($"🔴 Spawned {enemy.name} at distance {Vector3.Distance(spawnPosition, player.position):F1} from player");
+        }
+        else
+        {
+            Debug.LogError($"Enemy prefab doesn't have EnemyAi script!");
+            Destroy(enemy);
+        }
+
+        activeEnemies.Add(enemy);
+        enemiesSpawned++;
+    }
+
+    /// <summary>
+    /// OLD: Spawn multiple enemies around the player (mix of both types)
+    /// </summary>
+    private void SpawnEnemies()
+    {
+        if (spawnGradually)
+        {
+            // Spawn gradually in Update
+            return;
+        }
+        
+        // Spawn all at once
+        SpawnEnemiesImmediate();
     }
 
     /// <summary>

@@ -52,18 +52,9 @@ public class EnemyAi : MonoBehaviour
         if (player == null || agent == null || !agent.isOnNavMesh)
             return;
 
-        // Check distance to player
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-        bool playerDetected = distanceToPlayer < sightRange;
-
-        if (playerDetected)
-        {
-            ChasePlayer();
-        }
-        else
-        {
-            Patrol();
-        }
+        // UPDATED: Always chase the player - no sight range limit!
+        // Enemy always knows where player is and chases relentlessly
+        ChasePlayer();
     }
 
     /// <summary>

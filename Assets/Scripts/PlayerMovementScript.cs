@@ -2,10 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(CharacterController))]
 public class PlayerMovementScript : MonoBehaviour
 {
     public Camera playerCamera;
+    public GameObject characterModel; // Assign MaleCharacterPBR here
     public float walkSpeed = 6f;
     public float runSpeed = 12f;
     public float jumpPower = 7f;
@@ -24,7 +24,15 @@ public class PlayerMovementScript : MonoBehaviour
 
     void Start()
     {
-        characterController = GetComponent<CharacterController>();
+        // Get CharacterController from the character model (MaleCharacterPBR)
+        if (characterModel != null)
+        {
+            characterController = characterModel.GetComponent<CharacterController>();
+        }
+        else
+        {
+            characterController = GetComponent<CharacterController>();
+        }
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }

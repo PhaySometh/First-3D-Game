@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviour
 {
     [Header("Prefabs")]
     public GameObject enemyPrefab;
+    public GameObject enemyPrefab2; // NEW: Second enemy type
     public Transform player;
 
     [Header("Spawn Settings")]
@@ -106,7 +107,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Spawn multiple enemies around the player
+    /// Spawn multiple enemies around the player (mix of both types)
     /// </summary>
     private void SpawnEnemies()
     {
@@ -156,8 +157,15 @@ public class GameManager : MonoBehaviour
                 continue;
             }
 
+            // NEW: Randomly choose between enemy type 1 and 2
+            GameObject selectedPrefab = enemyPrefab;
+            if (enemyPrefab2 != null && Random.value > 0.5f)
+            {
+                selectedPrefab = enemyPrefab2;
+            }
+
             // Instantiate enemy
-            GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+            GameObject enemy = Instantiate(selectedPrefab, spawnPosition, Quaternion.identity);
             enemy.name = $"Enemy_{i + 1}";
 
             // Setup enemy

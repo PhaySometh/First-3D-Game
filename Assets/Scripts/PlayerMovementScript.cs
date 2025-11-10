@@ -2,14 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(CharacterController))]
 public class PlayerMovementScript : MonoBehaviour
 {
     public Camera playerCamera;
-    public float walkSpeed = 6f;
-    public float runSpeed = 12f;
-    public float jumpPower = 7f;
-    public float gravity = 10f;
+    public GameObject characterModel; // Assign MaleCharacterPBR here
+    public float walkSpeed = 4f;
+    public float runSpeed = 6f;
+    public float jumpPower = 5f;
+    public float gravity = 30f;
     public float lookSpeed = 2f;
     public float lookXLimit = 45f;
     public float defaultHeight = 2f;
@@ -24,7 +24,15 @@ public class PlayerMovementScript : MonoBehaviour
 
     void Start()
     {
-        characterController = GetComponent<CharacterController>();
+        // Get CharacterController from the character model (MaleCharacterPBR)
+        if (characterModel != null)
+        {
+            characterController = characterModel.GetComponent<CharacterController>();
+        }
+        else
+        {
+            characterController = GetComponent<CharacterController>();
+        }
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -59,13 +67,10 @@ public class PlayerMovementScript : MonoBehaviour
             characterController.height = crouchHeight;
             walkSpeed = crouchSpeed;
             runSpeed = crouchSpeed;
-
         }
         else
         {
             characterController.height = defaultHeight;
-            walkSpeed = 6f;
-            runSpeed = 12f;
         }
 
         characterController.Move(moveDirection * Time.deltaTime);

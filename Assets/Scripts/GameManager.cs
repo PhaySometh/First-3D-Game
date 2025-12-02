@@ -56,9 +56,15 @@ public class GameManager : MonoBehaviour
     private float spawnTimer = 0f;
     private float currentSpawnInterval; // NEW: Dynamic spawn interval
     private float difficultyTimer = 0f; // NEW: Track difficulty progression
+    
+    // NEW: Player health reference
+    private PlayerHealth playerHealth;
 
     private void Start()
     {
+        // IMPORTANT: Reset time scale in case scene was paused
+        Time.timeScale = 1f;
+        
         // Find player if not assigned
         if (player == null)
         {
@@ -67,6 +73,16 @@ public class GameManager : MonoBehaviour
                 playerObj = GameObject.Find("Player");
             if (playerObj != null)
                 player = playerObj.transform;
+        }
+
+        // NEW: Get player health component
+        if (player != null)
+        {
+            playerHealth = player.GetComponent<PlayerHealth>();
+            if (playerHealth == null)
+            {
+                Debug.LogWarning("⚠️ PlayerHealth component not found on player!");
+            }
         }
 
         Debug.Log($"🎮 GameManager started. Player found: {(player != null ? "YES" : "NO")}");
@@ -84,7 +100,7 @@ public class GameManager : MonoBehaviour
             objectiveText.text = "OBJECTIVE: SURVIVE!\nEvade the enemies as long as possible!";
 
         if (instructionText != null)
-            instructionText.text = "WASD: Move | MOUSE: Look Around | SHIFT: Run | SPACE: Jump";
+            instructionText.text = "WASD: Move | MOUSE: Look Around | SHIFT: Run (Stamina) | SPACE: Jump";
 
         // Setup survival time text at TOP-LEFT during gameplay
         if (survivalTimeText != null)
@@ -108,6 +124,32 @@ public class GameManager : MonoBehaviour
         if (replayButton != null)
         {
             replayButton.onClick.AddListener(ReplayGame);
+            
+            // Configure button RectTransform for proper clickable area
+            RectTransform buttonRect = replayButton.GetComponent<RectTransform>();
+            if (buttonRect != null)
+            {
+                // Position button at bottom center of screen
+                buttonRect.anchorMin = new Vector2(0.5f, 0); // Bottom center
+                buttonRect.anchorMax = new Vector2(0.5f, 0); // Bottom center
+                buttonRect.pivot = new Vector2(0.5f, 0); // Bottom center pivot
+                buttonRect.anchoredPosition = new Vector2(0, 50); // 50 pixels up from bottom
+                
+                // Make sure the button is large enough to click (minimum 200x60 pixels)
+                if (buttonRect.sizeDelta.x < 200 || buttonRect.sizeDelta.y < 60)
+                {
+                    buttonRect.sizeDelta = new Vector2(200, 60);
+                    Debug.Log($"✓ Button size adjusted to: {buttonRect.sizeDelta}");
+                }
+                
+                Debug.Log($"✓ Button positioned at bottom center. Position={buttonRect.anchoredPosition}, Size={buttonRect.sizeDelta}");
+            }
+            
+            Debug.Log("✓ Replay button listener ADDED successfully!");
+        }
+        else
+        {
+            Debug.LogError("❌ REPLAY BUTTON IS NULL! Please assign it in the Inspector!");
         }
     }
 
@@ -293,12 +335,22 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Call this when player is caught by enemy
+    /// Call this when player is caught by enemy (or dies from health reaching 0)
     /// </summary>
     public void PlayerCaught()
     {
         gameActive = false;
         Debug.Log("Game Over! Survived for: " + survivalTime + " seconds");
+
+        // PAUSE CAMERA - Unlock mouse and stop camera input
+        if (Camera.main != null)
+        {
+            ThirdPersonCameraController cameraController = Camera.main.GetComponent<ThirdPersonCameraController>();
+            if (cameraController != null)
+            {
+                cameraController.PauseCamera();
+            }
+        }
 
         // FREEZE THE GAME - Set time scale to 0
         Time.timeScale = 0f;
@@ -316,7 +368,13 @@ public class GameManager : MonoBehaviour
         // Update Game Over Text
         if (gameOverText != null)
         {
-            gameOverText.text = $"<color=red><b>GAME OVER!</b></color>\n\n<color=yellow>SURVIVED: {(int)survivalTime} seconds</color>";
+            // NEW: Show health or status
+            string deathReason = "Health depleted";
+            if (playerHealth != null)
+            {
+                deathReason = $"Health: {(int)playerHealth.GetHealth()}/100";
+            }
+            gameOverText.text = $"<color=red><b>GAME OVER!</b></color>\n\n<color=yellow>SURVIVED: {(int)survivalTime} seconds</color>\n<color=orange>{deathReason}</color>";
         }
 
         // Hide survival timer
@@ -331,14 +389,18 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void ReplayGame()
     {
-        // Resume time
+        Debug.Log("🔄 REPLAY BUTTON CLICKED! Starting replay...");
+        
+        // Resume time FIRST before anything else
         Time.timeScale = 1f;
+        Debug.Log("⏱️ Time.timeScale set to 1f");
         
-        // Hide cursor again (for gameplay)
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+        // Hide UI elements before reload
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(false);
         
-        // Reload the current scene
+        // Reload scene directly without coroutine to avoid timing issues
+        Debug.Log("🔄 Reloading scene now...");
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 

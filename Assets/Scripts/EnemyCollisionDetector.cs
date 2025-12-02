@@ -3,52 +3,49 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Enemy collision detector - Detects when enemy catches the player
+/// Enemy collision detector - Deals damage to player on collision
 /// </summary>
 public class EnemyCollisionDetector : MonoBehaviour
 {
-    private bool hasCollided = false;
+    [Header("Damage Settings")]
+    public float damageAmount = 25f; // Damage dealt to player per hit
+    public float damageCooldown = 1f; // Cooldown between damage hits
+    
+    private float lastDamageTime = 0f;
+    private bool hasHitPlayer = false;
 
     private void OnTriggerEnter(Collider collision)
     {
-        if (hasCollided)
-            return;
-
         // Check if it's the player
         if (collision.CompareTag("Player") || collision.gameObject.name.Contains("Player"))
         {
-            hasCollided = true;
-            Debug.Log("Player caught by " + gameObject.name);
-
-            // Notify GameManager
-            GameManager gameManager = FindObjectOfType<GameManager>();
-            if (gameManager != null)
-            {
-                gameManager.PlayerCaught();
-            }
-
-            // Disable enemy
-            Destroy(gameObject);
+            DealDamageToPlayer(collision.gameObject);
         }
     }
 
     private void OnTriggerStay(Collider collision)
     {
-        if (hasCollided)
-            return;
-
+        // Deal continuous damage while in contact
         if (collision.CompareTag("Player") || collision.gameObject.name.Contains("Player"))
         {
-            hasCollided = true;
-            Debug.Log("Player caught by " + gameObject.name);
-
-            GameManager gameManager = FindObjectOfType<GameManager>();
-            if (gameManager != null)
+            if (Time.time - lastDamageTime >= damageCooldown)
             {
-                gameManager.PlayerCaught();
+                DealDamageToPlayer(collision.gameObject);
             }
+        }
+    }
 
-            Destroy(gameObject);
+    /// <summary>
+    /// Deal damage to the player
+    /// </summary>
+    private void DealDamageToPlayer(GameObject playerObject)
+    {
+        PlayerHealth playerHealth = playerObject.GetComponent<PlayerHealth>();
+        if (playerHealth != null && playerHealth.IsAlive())
+        {
+            lastDamageTime = Time.time;
+            playerHealth.TakeDamage(damageAmount);
+            Debug.Log($"🎯 Enemy dealt {damageAmount} damage to player!");
         }
     }
 }

@@ -21,6 +21,7 @@ public class PlayerMovementScript : MonoBehaviour
     private CharacterController characterController;
 
     private bool canMove = true;
+    private PlayerStamina playerStamina; // NEW: Reference to stamina system
 
     void Start()
     {
@@ -33,6 +34,14 @@ public class PlayerMovementScript : MonoBehaviour
         {
             characterController = GetComponent<CharacterController>();
         }
+        
+        // NEW: Get stamina component
+        playerStamina = GetComponent<PlayerStamina>();
+        if (playerStamina == null)
+        {
+            Debug.LogWarning("PlayerStamina not found! Stamina system disabled.");
+        }
+        
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -42,7 +51,10 @@ public class PlayerMovementScript : MonoBehaviour
         Vector3 forward = transform.TransformDirection(Vector3.forward);
         Vector3 right = transform.TransformDirection(Vector3.right);
 
-        bool isRunning = Input.GetKey(KeyCode.LeftShift);
+        // NEW: Check stamina before allowing sprint
+        bool wantToRun = Input.GetKey(KeyCode.LeftShift);
+        bool isRunning = wantToRun && (playerStamina == null || playerStamina.CanSprint());
+        
         float curSpeedX = canMove ? (isRunning ? runSpeed : walkSpeed) * Input.GetAxis("Vertical") : 0;
         float curSpeedY = canMove ? (isRunning ? runSpeed : walkSpeed) * Input.GetAxis("Horizontal") : 0;
         float movementDirectionY = moveDirection.y;
